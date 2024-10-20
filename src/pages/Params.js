@@ -15,7 +15,7 @@ import TimeRange from "../components/TimeRange";
 import Upload from "../components/Upload";
 import BaseTimeline from "../components/BaseTimiline";
 import theme from "../components/Theme"
-
+import api from "../dead/api";
 
 
 export default function Params() {
@@ -48,59 +48,75 @@ const formattedEndTime = endTime ? dayjs(endTime).format('YYYY-MM-DDTHH:mm:ssZ')
 
 
 
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        if (token) {
-            localStorage.setItem('authToken', token);
-        }
-    }, []);
+const validate = () => {
+    let tempErrors = {};
+    const today = dayjs(); 
 
-    const validate = () => {
-        let tempErrors = {};
-        // tempErrors.name = name ? "" : "Это поле обязательно";
-        tempErrors.gender = gender ? "" : "Выберите пол";
-        if (!date && (!startDate || !endDate)) {
-            tempErrors.date = "Выберите дату или диапазон дат";
-        } else {
-            tempErrors.date = "";
+    // Проверка на одиночную дату
+    if (date) {
+        if (dayjs(date).isAfter(today)) {
+            tempErrors.date = "Дата не может быть в будущем";
         }
+    }
 
-        if (!time && (!startTime || !endTime)) {
-            tempErrors.time = "Выберите время или диапазон времени";
-        } else {
-            tempErrors.time = "";
+    // Проверка диапазона дат
+    if (startDate && endDate) {
+        if (dayjs(startDate).isAfter(today) || dayjs(endDate).isAfter(today)) {
+            tempErrors.date = "Диапазон дат не может быть в будущем";
+        } else if (dayjs(startDate).isAfter(dayjs(endDate))) {
+            tempErrors.date = "Начальная дата не может быть больше конечной";
         }
-        if (time && (startDate || endDate)){
-            tempErrors.time = "Выберите что-то одно (диапазоны или точные значения)";
-            setDate(null)
-            setTime(null)
-            setStartDate(null)
-            setEndDate(null)
-            setStartTime(null)
-            setEndTime(null)
-        }
-        if (date && (startTime || endTime)){
-            tempErrors.date = "Выберите что-то одно (диапазоны или точные значения)";
-            setDate(null)
-            setTime(null)
-            setStartDate(null)
-            setEndDate(null)
-            setStartTime(null)
-            setEndTime(null)
-        }
-        if (date && startTime && endTime && startDate && endDate && time){
-            tempErrors.time = "Выберите что-то одно (диапазоны или точные значения)";
-            setDate(null)
-            setTime(null)
-            setStartDate(null)
-            setEndDate(null)
-            setStartTime(null)
-            setEndTime(null) 
-        }
-        setErrors(tempErrors);
-        return Object.values(tempErrors).every(x => x === "");
-    };
+    }
+
+    // Проверка на наличие даты или диапазона
+    if (!date && (!startDate || !endDate)) {
+        tempErrors.date = "Выберите дату или диапазон дат";
+    }
+
+    // Проверка на пол
+    tempErrors.gender = gender ? "" : "Выберите пол";
+
+    // Проверка на время
+    if (!time && (!startTime || !endTime)) {
+        tempErrors.time = "Выберите время или диапазон времени";
+        setTime(null)
+        setStartTime(null)
+        setEndTime(null)
+    }
+
+    // Проверка на выбор между диапазонами и точными значениями
+    if (time && (startDate || endDate)) {
+        tempErrors.time = "Выберите что-то одно (диапазоны или точные значения)";
+        setDate(null)
+        setTime(null)
+        setStartDate(null)
+        setEndDate(null)
+        setStartTime(null)
+        setEndTime(null)
+    }
+    if (date && (startTime || endTime)) {
+        tempErrors.date = "Выберите что-то одно (диапазоны или точные значения)";
+        setDate(null)
+        setTime(null)
+        setStartDate(null)
+        setEndDate(null)
+        setStartTime(null)
+        setEndTime(null)
+    }
+    if (date && startTime && endTime && startDate && endDate && time) {
+        tempErrors.time = "Выберите что-то одно (диапазоны или точные значения)";
+        setDate(null)
+        setTime(null)
+        setStartDate(null)
+        setEndDate(null)
+        setStartTime(null)
+        setEndTime(null)
+    }
+
+    // Установка ошибок
+    setErrors(tempErrors);
+    return Object.values(tempErrors).every(x => x === "");
+};
 
     const handleFileChange = (file) => {
         setPhoto(file);
@@ -132,11 +148,6 @@ const formattedEndTime = endTime ? dayjs(endTime).format('YYYY-MM-DDTHH:mm:ssZ')
     };
 
     async function saveSession(session, file) {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-            console.error('Токен не найден в localStorage');
-            return;
-        }
     
         const formData = new FormData();
     
@@ -152,27 +163,18 @@ const formattedEndTime = endTime ? dayjs(endTime).format('YYYY-MM-DDTHH:mm:ssZ')
         }
     
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/v1/save_info/', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                },
-                body: formData
+            const response = await api.post('http://127.0.0.1:8000/api/v1/save_info/', formData, {
+                withCredentials: true, // Убедитесь, что вы передаете учетные данные
             });
-    
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.log(formData)
-                console.error('Ошибка при сохранении данных:', errorData);
-                return;
-            }
-    
-            const result = await response.json();
+        
+            const result = response.data;
+        
             console.log('Данные успешно сохранены:', result);
-            window.location.href = `/account?token=${token}`
+            window.location.href = `/account/`;
         } catch (error) {
-            console.error('Ошибка при запросе:', error);
+            console.error('Ошибка при запросе:', error.response ? error.response.data : error.message);
         }
+        
     }
     
     
@@ -182,7 +184,7 @@ const formattedEndTime = endTime ? dayjs(endTime).format('YYYY-MM-DDTHH:mm:ssZ')
             <CssBaseline />
             <Container maxWidth="md">
            
-                <Typography variant='h1' sx={{ my: 4, textAlign: 'center' }}>Дополнительная информация</Typography>
+                <Typography variant='h1' sx={{ mx:1, my: 4, textAlign: 'center' }}>Дополнительная информация</Typography>
                 <Typography sx={{ mb: 4, textAlign: 'center', mb: 8 }}>
                     Чем больше данных предоставите - тем выше вероятность найти совпадение
                 </Typography>

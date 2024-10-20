@@ -6,19 +6,19 @@ const theme = createTheme({
     palette: {
         mode: 'dark', 
         background: {
-            default: '#121212',
-            paper: '#1e1e1e'
+            default: '#0d0d0d',
+            paper: '#121212'
         },
         text: {
             primary: '#ffffff',
-            secondary: '#cfe0fc'
+            secondary: '#DCDCDC'
         },
         primary: {
-            main: '#cfe0fc',
+            main: '#ffffff',
             contrastText: '#000000' 
         },
         secondary: {
-            main: '#000000',
+            main: '#7FFF00',
             contrastText: '#ffffff' 
         }
     },

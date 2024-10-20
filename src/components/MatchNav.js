@@ -20,56 +20,59 @@ export default function MatchNav({ onChange }) {
   return (
     <Box 
       sx={{
-        width: '300px',  // Фиксированная ширина
+        width: '300px', 
         position: 'fixed',
         top: '15px',
         left: '50%',
-        transform: 'translateX(-50%)',  // Центрирование
+        transform: 'translateX(-50%)', 
         zIndex: 10,
-        backgroundColor: theme.palette.background.paper,  // Используем цвет из theme
+        backgroundColor: theme.palette.background.paper,  
         borderRadius: '20px',
-        boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.3)',  // Легкая тень
-        padding: '5px',  // Внутренний отступ
+        boxShadow: '0px 2px 10px rgba(0, 0, 0, 0.3)', 
+        padding: '5px',
       }}
     >
       <BottomNavigation 
+
         value={value} 
         onChange={handleChange} 
         showLabels
         sx={{
-          backgroundColor: 'transparent',  // Прозрачный фон
-          height: '40px',  // Небольшая высота
+          backgroundColor: 'transparent',  
+          height: '40px', 
         }}
       >
         <BottomNavigationAction 
+          disableRipple
           label="MayBeMatch" 
           value="maybematch" 
           icon={<TravelExploreOutlinedIcon fontSize="small" />}  
           sx={{
             color: value === 'maybematch' 
               ? theme.palette.primary.main 
-              : theme.palette.text.secondary,  // Цвета из theme
+              : theme.palette.text.secondary,  
             '& .Mui-selected': {
               color: theme.palette.primary.main,
             },
             '& .MuiBottomNavigationAction-label': {
-              fontSize: '12px',  // Меньший размер шрифта
+              fontSize: '12px',  
             },
           }}
         />
         <BottomNavigationAction 
+          disableRipple
           label="Match" 
           value="match" 
           icon={<MapOutlinedIcon fontSize="small" />}  
           sx={{
             color: value === 'match' 
               ? theme.palette.primary.main 
-              : theme.palette.text.secondary,  // Цвета из theme
+              : theme.palette.text.secondary,  
             '& .Mui-selected': {
               color: theme.palette.primary.main,
             },
             '& .MuiBottomNavigationAction-label': {
-              fontSize: '12px',  // Меньший размер шрифта
+              fontSize: '12px',  
             },
           }}
         />

@@ -1,73 +1,59 @@
-import {React, useState, useEffect} from "react";
-import axios from "axios";
-import { Box, Container, Typography, createTheme, ThemeProvider, CssBaseline, TextField , Grid, Card, CardMedia, CardContent, Divider, Button} from "@mui/material";
-import theme from "../components/Theme"
-import image from "../image.jpeg"
-import lightTheme from './LightTheme'; 
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { CircularProgress, Container, Typography , Box} from '@mui/material';
+import api from '../dead/api';
+import Cube from '../animations/cube';
 
+const LazyMatchList = lazy(() => import('../lazy-components/MatchList')); 
 
-export default function Final(){
+export default function Final() {
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const[nothing , setNothing] = useState(false)
 
-    const [token, setToken] = useState(null);
-    const [matches, setMatches] = useState([]);
+  useEffect(() => {
+    api.get(`${process.env.REACT_APP_API_URL}/api/v1/match/`, {
+      withCredentials: true,
+    })
+      .then(function (response) {
+        console.log(response);
+        setMatches(response.data);
+        setLoading(false);
+        
+        // Проверяем, есть ли совпадения
 
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenFromURL = urlParams.get('token');
-        setToken(tokenFromURL);
-    
-        if (tokenFromURL){
-                axios.get(`${process.env.REACT_APP_API_URL}/api/v1/match`, {
-                    headers: {
-                    'Authorization': `Token ${tokenFromURL}`,
-                    }
-                })
-                .then(function (response) {
-                    console.log(response);
-                    setMatches(response.data);
-                })
-                .catch(function (error) {
-                    console.log(error);
-                });
-            };
-    }, []);
+          setNothing(false);
 
+      })
+      .catch(function (error) {
+        console.log(error);
+        setLoading(false);
+        setNothing(true); // Вы можете установить это состояние в true, если произошла ошибка
+      });
+  }, []);
 
-    return(
-        <ThemeProvider theme={lightTheme}>
-          <Container>
-            <Typography variant="h1" sx={{ mt: 12, mb:8, textAlign: 'center' }}>Match</Typography>
-            <Grid container spacing={4}>
-              {matches.map(match => (
-                <Grid item xs={12} sm={6} md={4} key={match.id}>
-                  <Card sx={{ display: 'flex', flexDirection: 'column', borderRadius: 2, boxShadow: 3 }}>
-                    <CardMedia
-                      component="img"
-                      sx={{ height: 200, objectFit: 'cover' }}
-                      image={image}
-                      alt="Session 1"
-                    />
-                    <CardContent sx={{ flex: 1 }}>
-                      <Typography variant="h2" color="primary" sx={{ mb: 2 }}>
-                        Детали
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                        <strong>Пользователь 1:</strong> {match.user_1.real_name}
-                      </Typography>
-
-                      <Divider sx={{ my: 2 }} />
-                      <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                        <strong>Пользователь 2:</strong> {match.user_2.real_name}
-                      </Typography>
-         
-                    </CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                    </Box>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          </Container>
-        </ThemeProvider>
-    
-           ) }
+  return (
+    <Container>
+      <Typography variant="h4" sx={{ mt: 12, mb: 8, textAlign: 'center', fontWeight: 'bold' }}>Match</Typography>
+      {nothing?<Typography variant='h3'sx={{ mt: 12, mb: 8, textAlign: 'center', fontWeight: 'bold' }}>У вас пока нет совпадений
+      </Typography>:<></>}
+      {/* Показываем индикатор загрузки, пока данные не пришли */}
+      {loading ? (
+        <Box 
+        sx={{
+          position: 'fixed',   
+          top: '50%',          
+          left: '50%',         
+          transform: 'translate(-50%, -50%)', 
+          zIndex: 9999         
+        }}
+      >
+          <Cube />
+      </Box>
+      ) : (
+        <Suspense fallback={<Cube />}>
+          <LazyMatchList matches={matches} />  {/* Ленивый рендер матчей */}
+        </Suspense>
+      )}
+    </Container>
+  );
+}

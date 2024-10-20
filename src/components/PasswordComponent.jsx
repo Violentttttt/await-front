@@ -1,52 +1,55 @@
-import React from "react";
-import { Box, Container, Typography, createTheme, ThemeProvider, CssBaseline, TextField, Button } from "@mui/material";
-import InputAdornment from '@mui/material/InputAdornment';
+import React, { useRef } from "react";
+import { TextField, InputAdornment, IconButton } from "@mui/material";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { pickersArrowSwitcherClasses } from "@mui/x-date-pickers/internals";
-import IconButton from '@mui/material/IconButton';
 
-
-export default function PasswordComponent(props){
+export default function PasswordComponent(props) {
     const [showPassword, setShowPassword] = React.useState(false);
+    const inputRef = useRef(null); // Создаем ref для поля ввода
 
     const handleClickShowPassword = () => {
-        setShowPassword(!showPassword);
-      };
-    
-      const handleMouseDownPassword = (event) => {
-        event.preventDefault();
-      };
-    
+        const input = inputRef.current; // Получаем элемент поля ввода через реф
+        const cursorPosition = input.selectionStart; // Сохраняем позицию курсора
 
+        setShowPassword(!showPassword); // Переключаем видимость пароля
 
-    return(
+        // Задержка для корректного отображения нового состояния и установки позиции курсора
+        setTimeout(() => {
+            input.setSelectionRange(cursorPosition, cursorPosition); // Восстанавливаем позицию курсора
+        }, 0);
+    };
+
+    const handleMouseDownPassword = (event) => {
+        event.preventDefault(); // Предотвращаем потерю фокуса при нажатии
+    };
+
+    return (
         <TextField
-                    label={props.label}
-                    variant="outlined"
-                    name={props.name}
-                    type={showPassword ? 'text' : 'password'}
-                    fullWidth
-                    value={props.value}
-                    sx={{my:1}}
-                    onChange={props.handleChange}
-                    error={props.error}
-                    helperText={props.helperText}
-                    InputProps={{
-                        endAdornment: (
-                        <InputAdornment position="end">
-                            <IconButton
+            inputRef={inputRef} // Присваиваем реф к полю ввода
+            label={props.label}
+            variant="outlined"
+            name={props.name}
+            type={showPassword ? 'text' : 'password'}
+            fullWidth
+            value={props.value}
+            sx={{ my: 1 }}
+            onChange={props.handleChange}
+            error={props.error}
+            helperText={props.helperText}
+            InputProps={{
+                endAdornment: (
+                    <InputAdornment position="end">
+                        <IconButton
                             aria-label="toggle password visibility"
                             onClick={handleClickShowPassword}
                             onMouseDown={handleMouseDownPassword}
-                            
                             edge="end"
-                            >
+                        >
                             {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                        </InputAdornment>
-                    ),
-                }}
-                />
-    )
+                        </IconButton>
+                    </InputAdornment>
+                ),
+            }}
+        />
+    );
 }

@@ -6,6 +6,7 @@ import TimeRange from "../components/TimeRange";
 import BaseTimeline from "../components/BaseTimiline";
 import TimeField from "../components/TimeField";
 import MatchNav from "../components/MatchNav"
+import SwipeableEdgeDrawer from "../components/Drawer";
 
 
 const theme = createTheme({
@@ -113,9 +114,11 @@ export default function Mui() {
                         <Typography sx={{mt:2 }}>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</Typography>
                         <Button variant="outlined">Learn more</Button>
                             </Paper>
-                            
+
                      </Box>)
                 })}
+
+
                 </Box>
 
                 
@@ -126,6 +129,11 @@ export default function Mui() {
                 />
                 <ButtonUsage type="submit"/>
                 </form>
+  
+
+  <Container>
+    <SwipeableEdgeDrawer  component={<ButtonUsage/>}/>
+  </Container>
                 <BaseTimeline/>
         </ThemeProvider>
     );

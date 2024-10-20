@@ -1,93 +1,92 @@
-import {React, useState , useEffect} from "react";
-import { Box, Typography, ThemeProvider, Button, Card, CardContent, CardMedia } from "@mui/material";
+import { React, useState, useEffect, lazy, Suspense } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { removeMatch, WEBSOCKET_SEND_MESSAGE } from "../actions/webSocketActions";
+import { Box, Typography, ThemeProvider, Container } from "@mui/material";
 import theme from "../components/Theme";
-import axios from "axios";
-import lightTheme from './LightTheme'; 
+import api from "../dead/api";
+import { AuthProvider } from '../context/AuthContext';
+import Cube from "../animations/cube";
 
-export default function Matches({ mayBeMatches: initialMatches }) {
+// Ленивый импорт компонента MatchList
+const LazyMatchList = lazy(() => import('../lazy-components/MbMatchList'));
 
-    const [token, setToken] = useState(null);
-    const [matches, setMatches] = useState(initialMatches);
-
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tokenFromURL = urlParams.get('token');
-        setToken(tokenFromURL);
-    }, []);
+export default function Matches() {
+    const dispatch = useDispatch();
+    const matches = useSelector((state) => state.websocket.matches || []); 
+    const [loading, setLoading] = useState(true);
+    const [showNoMatchesMessage, setShowNoMatchesMessage] = useState(false);
 
     const handleAction = (action, matchId) => {
-        axios.post(`${process.env.REACT_APP_API_URL}/api/v1/maybematch`, {
+        api.post(`${process.env.REACT_APP_API_URL}/api/v1/maybematch`, {
             action: action,
             matchId: matchId,
         }, {
-            headers: {
-                'Authorization': `Token ${token}`,
-            }, 
+            withCredentials: true 
         })
         .then(function (response) {
-            // Удаляем обработанную карточку из состояния
-            setMatches(matches.filter(match => match.maybematch.id !== matchId));
+            dispatch({
+                type: WEBSOCKET_SEND_MESSAGE, 
+                payload: {
+                    type: 'match_action', 
+                    action: action, 
+                    matchId: matchId 
+                }
+            });
+            dispatch(removeMatch(matchId));
         })
         .catch(function (error) {
             console.log(error);
         });
     };
 
+    useEffect(() => {
+        // Сброс состояния загрузки при изменении списка мэтчей
+        if (matches.length > 0) {
+            setLoading(false);
+        } else {
+            setLoading(true); 
+        }
+    }, [matches]);
+
+    useEffect(() => {
+        // Таймер для отображения сообщения через 4 секунды
+        const timer = setTimeout(() => {
+            if (loading) {
+                setShowNoMatchesMessage(true);
+            }
+        }, 4000);
+
+        // Очистка таймера при завершении загрузки
+        return () => clearTimeout(timer);
+    }, [loading]);
+
     return (
-        <ThemeProvider theme={lightTheme}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', my: 4, mx: 2 }}>
-                <Typography variant="h4" sx={{ my: 8, textAlign: 'center', fontWeight: 'bold' }}>MayBeMatch</Typography>
-                <Box>
-                    {matches && matches.length > 0 ? (
-                        matches.map((match) => (
-                            <Card key={match.maybematch.id} sx={{ display: 'flex', flexDirection: 'row', mb: 2, borderRadius: '12px', boxShadow: 3 }}>
-                                
-                                <CardMedia
-                                    component="img"
-                                    sx={{ width: 150, height: 150, objectFit: 'cover', borderRadius: '12px' }}
-                                    image={match.his_picture.image ? `${process.env.REACT_APP_API_URL}${match.his_picture.image}` : '/placeholder-image.png'}
-                                    alt="Profile"
-                                />
-                                <Box sx={{ display: 'flex', flexDirection: 'column', p: 2, flex: 1 }}>
-                                    <Typography variant="body1" sx={{ mb: 1 }}>
-                                        {match.search_name.name === '' ? 'Вы искали человека' : `Вы искали: ${match.search_name.name}`}
-                                    </Typography>
-                                    <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                        Похоже, что мы его нашли... Это он?
-                                    </Typography>
-                                    <Typography variant="body1" sx={{ mb: 2 }}>
-                                        {match.is_it_him.real_name}
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                                        {match.about_him.about}
-                                    </Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex', flexDirection: 'column', p: 2, alignItems: 'center', justifyContent: 'center' }}>
-                                    <Button 
-                                        variant="contained" 
-                                        color="primary" 
-                                        sx={{ mb: 1, width: '100%' }} 
-                                        onClick={() => handleAction('True', match.maybematch.id)}
-                                    >
-                                        Принять
-                                    </Button>
-                                    <Button 
-                                        variant="outlined" 
-                                        color="error" 
-                                        sx={{ width: '100%' }} 
-                                        onClick={() => handleAction('False', match.maybematch.id)}
-                                    >
-                                        Отклонить
-                                    </Button>
-                                </Box>
-                                
-                            </Card>
-                        ))
-                    ) : (
-                        <Typography variant="body1" sx={{ textAlign: 'center', my: 4 }}>У вас пока нет совпадений</Typography>
-                    )}
+        <Container>
+            <Typography variant="h4" sx={{ my: 12, textAlign: 'center', fontWeight: 'bold' }}>MayBeMatch</Typography>
+            {loading ? (
+                <Box 
+                    sx={{
+                        position: 'fixed',   
+                        top: '50%',          
+                        left: '50%',         
+                        transform: 'translate(-50%, -50%)', 
+                        zIndex: 9999         
+                    }}
+                >
+                    <Cube />
                 </Box>
-            </Box>
-        </ThemeProvider>
+            ) : (
+                <Suspense fallback={<Cube />}>
+                    <LazyMatchList matches={matches} handleAction={handleAction} /> 
+                </Suspense>
+            )}
+
+            {/* Если загрузка длится более 4 секунд и нет мэтчей */}
+            {showNoMatchesMessage && matches.length === 0 && (
+                <Typography variant="h6" sx={{ textAlign: 'center', mt: 4 }}>
+                    Похоже, что у вас нет мэтчей
+                </Typography>
+            )}
+        </Container>
     );
 }

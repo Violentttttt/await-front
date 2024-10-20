@@ -1,4 +1,6 @@
 import React, { useEffect } from "react"
+import { useNavigate , useLocation } from "react-router-dom";
+import Cookies from 'js-cookie';
 import { Box, Container, Typography, createTheme, ThemeProvider, CssBaseline, TextField, Button } from "@mui/material";
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -9,6 +11,8 @@ import { pickersArrowSwitcherClasses } from "@mui/x-date-pickers/internals";
 import ButtonUsage from "../components/ButtonUsage";
 import PasswordComponent from "../components/PasswordComponent";
 import axios from "axios";
+import api from "../dead/api"
+import {useHelp} from '../context/HelpContext';
 
 //не хватает норм валидации и аксиосов , также рассмотреть эту страгницу как попап . проработать авторизацию в API
 
@@ -17,43 +21,56 @@ export default function Login(){
 const[formData, setFormData] = React.useState({email:'', password:'' })
 const [showPassword, setShowPassword] = React.useState(false);
 const[ errors , setErrors] = React.useState({})
-const [token, setToken] = React.useState(null);
+const [login, setLogin] = React.useState(false);
+const navigate = useNavigate()
+const location = useLocation();
+const fromRegister = sessionStorage.getItem('fromRegister');
 
 
-const handleClickShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const handleMouseDownPassword = (event) => {
-    event.preventDefault();
-  };
 
 function handleChange(event){
     const {name, value , type , checked} = event.target
 setFormData((prev)=>({...prev , [name]:value}))
 }
 
-async function handleSubmit(event){
+async function handleSubmit(event) {
     event.preventDefault();
-    if (validate()){
-    try {
-        const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/v1/login/`, formData);
-        setToken(response.data.token)
-        localStorage.setItem('token', response.data.token);
-        
-    } catch (error) {
-        alert('Error during login');
+    if (validate()) {
+        try {
+            const response = await api.post(`${process.env.REACT_APP_API_URL}/api/v1/login/`, formData, {
+                withCredentials: true // Это позволяет работать с cookies
+            });
+            setLogin((prev) => !prev);
+            navigate('/account/');
+        } catch (error) {
+            alert('Error during login');
+        }
     }
-    
-}
 }
 
+
 useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        window.location.href = `/account?token=${token}`;
+
+    if (fromRegister) {
+      
+        sessionStorage.removeItem('fromRegister');
+
+        // Делаем запрос на проверку токена
+        axios.post(`${process.env.REACT_APP_API_URL}/api/v1/token/verify/app/`, {}, {
+            withCredentials: true
+        }).then(response => {
+            if (response.status === 200) {
+                navigate('/account/');
+            }
+        }).catch(() => {
+       
+        });
     }
-}, [token]);
+}, [fromRegister]);
+
+  
+
+
 
 
 const validate = () => {
@@ -69,6 +86,34 @@ return(
        
         <Container>
             <Typography variant="h1" sx={{textAlign:"center" , my:5}}>Войти</Typography>
+            <Typography
+                sx={{
+                    textAlign: "center",
+                    my: { xs: 3, md: 5 }, 
+                    color: "text.secondary",
+                    px: { xs: 2, md: 0 },  
+                }}
+            >
+                Если вы здесь впервые —{" "}
+                <Box
+                    component="a"
+                    onClick={() => navigate('/register/')}
+                    sx={{
+                        cursor: "pointer",
+                        color: "primary.main",
+                        textDecoration: "underline",
+                        fontWeight: "bold",
+                        fontSize: { xs: "1rem", md: "1.1rem" }, 
+                        "&:hover": {
+                            color: "primary.dark",
+                            textDecoration: "none",
+                        },
+                        display: "inline-block",  
+                    }}
+                >
+                    Создать аккаунт
+                </Box>
+            </Typography>
             <Box sx={{display:"flex" , flexDirection:"column"}}>
                 <form onSubmit={handleSubmit}>
                 <TextField

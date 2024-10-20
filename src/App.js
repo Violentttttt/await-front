@@ -1,54 +1,65 @@
-import React, { useEffect } from 'react'; 
-import axios from 'axios'; 
+import React, { useEffect } from 'react';
+import { unstable_HistoryRouter as HistoryRouter } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom"; // useLocation внутри Router
 import World from './pages/World';
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Params from './pages/Params';
 import Mui from './pages/Mui';
 import Account from './pages/Account';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Logout from './pages/Logout';
+import Geolocation from "./pages/Geolocation";
+import ProtectedRoute from "./dead/ProtectedRoute";
+import { AuthProvider } from './context/AuthContext';
+import { HelpProvider } from './context/HelpContext';
+import WebSocketProvider from './dead/WebSocketProvider';
 
-class App extends React.Component { 
+import { useDispatch } from 'react-redux';
+import { connectWebSocket, disconnectWebSocket } from './actions/webSocketActions';
+import { initializeMap } from './actions/mapActions';
+import { history } from './dead/history';
+import Cube from './animations/cube'
+
+
+const App = () => {
+
+    const dispatch = useDispatch()
+
+    useEffect(()=>{
+        dispatch(connectWebSocket())
+        dispatch(initializeMap("hiddenMapContainer"))
+        // return ()=>{dispatch(disconnectWebSocket())}
+    }, [dispatch])
+
+
+    return( 
+        <React.StrictMode>
+            <HelpProvider>
   
-	state = { 
-		details : [], 
-	} 
+                <HistoryRouter history={history}>
+                <div id="hiddenMapContainer" style={{ width: "0", height: "0", visibility: "hidden" }}></div>
+                        <Routes>
+                            <Route path="/geo" element={<Geolocation />} />
+                            <Route path="/register" element={<Register />} />
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/world" element={<AuthProvider><ProtectedRoute><World /></ProtectedRoute></AuthProvider>} />
+                            <Route path="/params" element={<AuthProvider><ProtectedRoute><Params /></ProtectedRoute></AuthProvider>} />
+                            <Route path="/mui" element={<Mui />} />
+                            <Route path="/account" element={
+                                <AuthProvider>    
+                                    <ProtectedRoute>
+                                            <Account />
+                                    </ProtectedRoute>
+                                </AuthProvider>
+                            } />
 
-	componentDidMount() { 
 
-		let data ; 
+                            <Route path="/" element={<Cube />} />
+                        </Routes>
+                </HistoryRouter>
 
-		axios.get('http://localhost:8000/api/v1/world/') 
-		.then(res => { 
-			data = res.data; 
-			this.setState({ 
-				details : data	 
-			}); 
-		}) 
-		.catch(err => {}) 
-	} 
-
-render() { 
-	return( 
-    <React.StrictMode>
-    <Router>
-    <div>
-        <Routes>
-			<Route path="/register" element={<Register />} />
-			<Route path="/login" element={<Login />} />
-			<Route path="/logout" component={<Logout/>} />
-            <Route path="/world" element={<World />} />
-            <Route path="/params" element={<Params />} />
-			<Route path="/account" element={<Account />} />
-            <Route path="/mui" element={<Mui />} />
-        </Routes>
-    </div>
-</Router>
-</React.StrictMode>
-	); 
-} 
-} 
-
+            </HelpProvider>
+        </React.StrictMode>
+    ); 
+}
 
 export default App;
